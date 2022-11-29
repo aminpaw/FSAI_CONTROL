@@ -6,11 +6,14 @@ import time
 import math
 from scipy import interpolate,optimize,spatial 
 from typing import Union
+import scipy.interpolate
 
 def calcSplines(path: np.ndarray,
                  psi_s: float = None,
                  psi_e: float = None,
                  use_dist_scaling: bool = True) -> tuple:
+
+    t_start = time.perf_counter() 
 
     # get number of splines
     noSplines = path.shape[0] - 1
@@ -63,17 +66,23 @@ def calcSplines(path: np.ndarray,
     # curvature boundary condition
     M[-1, 2] = 2 * math.pow(scaling[-1], 2)
     M[-1, -2:] = [-2, -6]
-
+    print("TIME BEFORE CALC: ",time.perf_counter()-t_start)
     # ------------------------------------------------------------------------------------------------------------------
     # SOLVE ------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-
-    xLinearEquations = np.squeeze(np.linalg.solve(M, b_x))  # squeeze removes single-dimensional entries
-    yLinearEquations= np.squeeze(np.linalg.solve(M, b_y))
-
+    #xLinearEquations = np.squeeze(np.linalg.solve(M, b_x))  # squeeze removes single-dimensional entries
+    #yLinearEquations= np.squeeze(np.linalg.solve(M, b_y))
+    t = np.arange(0,path.shape[0])
+    x = np.array(path[:,0])
+    y = np.array(path[:,1])
+    x_s = interpolate.CubicSpline(t,x)
+    y_s = interpolate.CubicSpline(t,y)
+    xCoeffs = np.rot90(x_s.c, 3)
+    yCoeffs = np.rot90(y_s.c, 3)
+    print("TIME AFTER CALC: ", -t_start + time.perf_counter())
     # get coefficients of every piece into one row -> reshape
-    xCoeffs = np.reshape(xLinearEquations, (noSplines, 4))
-    yCoeffs = np.reshape(yLinearEquations, (noSplines, 4))
+    #xCoeffs = np.reshape(xLinearEquations, (noSplines, 4))
+    #yCoeffs = np.reshape(yLinearEquations, (noSplines, 4))
 
     # get normal vector 
     normVec = np.stack((yCoeffs[:, 1], -xCoeffs[:, 1]), axis=1)
@@ -81,7 +90,7 @@ def calcSplines(path: np.ndarray,
     # normalize normal vectors
     normFactors = 1.0 / np.sqrt(np.sum(np.power(normVec, 2), axis=1))
     normVecNormalized = np.expand_dims(normFactors, axis=1) * normVec
-
+    print("END: ", -t_start + time.perf_counter())
     return xCoeffs, yCoeffs, M, normVecNormalized
 
 def opt_min_curv(reftrack: np.ndarray,
@@ -89,11 +98,11 @@ def opt_min_curv(reftrack: np.ndarray,
                  A: np.ndarray,
                  vehicleWidth: float = 2,
                  kappa_bound: float = 0.2) -> tuple:
-
+    TS = time.perf_counter()
     # ------------------------------------------------------------------------------------------------------------------
     # PREPARATIONS -----------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-
+    TimeS = time.perf_counter()
     noPoints = reftrack.shape[0]
 
     noSplines = noPoints
@@ -111,10 +120,11 @@ def opt_min_curv(reftrack: np.ndarray,
     for i in range(noSplines):
         A_ex_c[i, i * 4 + 2] = 2    # 2 * c_ix = D_x * x
 
+    Time_S = time.perf_counter()
     # invert matrix A resulting from the spline setup linear equation system and apply extraction matrix
     A_inv = np.linalg.inv(A)
     T_c = np.matmul(A_ex_c, A_inv)
-
+    print("SUS: ", -Time_S + time.perf_counter())
     # set up M_x and M_y matrices 
     M_x = np.zeros((noSplines * 4, noPoints))
     M_y = np.zeros((noSplines * 4, noPoints))
@@ -171,11 +181,11 @@ def opt_min_curv(reftrack: np.ndarray,
     P_xx = np.matmul(curv_part_sq, y_prime_sq)
     P_yy = np.matmul(curv_part_sq, x_prime_sq)
     P_xy = np.matmul(curv_part_sq, x_prime_y_prime)
-
+    print(-TimeS + time.perf_counter())
     # ------------------------------------------------------------------------------------------------------------------
     # SET UP FINAL MATRICES FOR SOLVER ---------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-
+    TimeS = time.perf_counter()
     T_nx = np.matmul(T_c, M_x)
     T_ny = np.matmul(T_c, M_y)
 
@@ -191,11 +201,11 @@ def opt_min_curv(reftrack: np.ndarray,
     f_y = 2 * np.matmul(np.matmul(q_y.T, T_c.T), np.matmul(P_yy, T_ny))
     f = f_x + f_xy + f_y
     f = np.squeeze(f)   # remove non-singleton dimensions
-
+    print(-TimeS + time.perf_counter())
     # ------------------------------------------------------------------------------------------------------------------
     # CURVATURE(KAPPA) CONSTRAINTS ------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-
+    TimeS = time.perf_counter()
     Q_x = np.matmul(curv_part, y_prime)
     Q_y = np.matmul(curv_part, x_prime)
 
@@ -208,7 +218,8 @@ def opt_min_curv(reftrack: np.ndarray,
     con_ge = np.ones((noPoints, 1)) * kappa_bound - k_kappa_ref
     con_le = -(np.ones((noPoints, 1)) * -kappa_bound - k_kappa_ref)  
     con_stack = np.append(con_ge, con_le)
-
+    print(-TimeS + time.perf_counter())
+    print("BEFORE OPT.: ",- TS + time.perf_counter())
     # ------------------------------------------------------------------------------------------------------------------
     # SOLVE COST FUNCTION -----------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -278,6 +289,7 @@ def spline_approximation(track: np.ndarray,
     # ------------------------------------------------------------------------------------------------------------------
 
     track_interp = interp_track(track=track, stepsize=stepsize_prep)
+    print(track_interp)
     track_interp_cl = np.vstack((track_interp, track_interp[0]))
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -286,7 +298,7 @@ def spline_approximation(track: np.ndarray,
 
     # create closed track (original track)
     track_cl = np.vstack((track, track[0]))
-    no_oints_track_cl = track_cl.shape[0]
+    no_points_track_cl = track_cl.shape[0]
     el_lengths_cl = np.sqrt(np.sum(np.power(np.diff(track_cl[:, :2], axis=0), 2), axis=1))
     dists_cum_cl = np.cumsum(el_lengths_cl)
     dists_cum_cl = np.insert(dists_cum_cl, 0, 0.0)
@@ -428,9 +440,9 @@ if __name__ == "__main__":
                                                     normvectors=normvec_normalized_interp,
                                                     A=a_interp,
                                                     kappa_bound=0.12,
-                                                    vehicleWidth=2.0)
+                                                    vehicleWidth=5.0)
 
-    print("Solver runtime Total: " + "{:.3f}".format(time.perf_counter() - t_start) + "s")
+    print("Solver runtime Total: ", time.perf_counter() - t_start, "s")
 
     # Plot Path
     path_result = reftrack_interp[:, 0:2] + normvec_normalized_interp * np.expand_dims(alpha_mincurv, axis=1)
