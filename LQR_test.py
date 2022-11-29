@@ -430,6 +430,8 @@ if __name__ == "__main__":
     reftrack[:,3] -= 2
     reftrack[:,2] -= 2
     t_start = time.perf_counter()
+
+    ll
     
     # Prepare Track for Optimization
     reftrack_interp, normvec_normalized_interp, a_interp, coeffs_x_interp, coeffs_y_interp = prep_track(reftrack_imp=reftrack,
