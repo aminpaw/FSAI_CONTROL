@@ -228,7 +228,6 @@ def opt_min_curv(reftrack: np.ndarray,
     Solve a Quadratic Program defined as:
         minimize
             (1/2) * alpha.T * H * alpha + f.T * alpha
-
         subject to
             G * alpha <= h
     """
@@ -428,19 +427,20 @@ if __name__ == "__main__":
     #load example track
     csv_data_temp = np.loadtxt('berlin_2018.csv',comments='#', delimiter=',')
     reftrack = csv_data_temp[:, 0:4]
-
+    reftrack[:,3] -= 2
+    reftrack[:,2] -= 2
     t_start = time.perf_counter()
     
     # Prepare Track for Optimization
     reftrack_interp, normvec_normalized_interp, a_interp, coeffs_x_interp, coeffs_y_interp = prep_track(reftrack_imp=reftrack,
                                                     reg_smooth_opts={"k_reg": 3,"s_reg": 10},
-                                                    stepsize_opts={"stepsize_prep": 1.0,"stepsize_reg": 3.0,"stepsize_interp_after_opt": 2.0})
+                                                    stepsize_opts={"stepsize_prep": 1.0,"stepsize_reg": 1.0,"stepsize_interp_after_opt": 1.0})
     # Optimize Path                                                
     alpha_mincurv = opt_min_curv(reftrack=reftrack_interp[:,:],
                                                     normvectors=normvec_normalized_interp,
                                                     A=a_interp,
                                                     kappa_bound=0.12,
-                                                    vehicleWidth=5.0)
+                                                    vehicleWidth=2.0)
 
     print("Solver runtime Total: ", time.perf_counter() - t_start, "s")
 
