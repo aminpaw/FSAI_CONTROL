@@ -819,96 +819,96 @@ def calc_spline_lengths(
 
     return spline_lengths
 
+if __name__ == "__main__":
+    # load example track
+    csv_data_temp = np.loadtxt(
+        "./berlin_2018.csv",
+        comments="#",
+        delimiter=",",
+    )
 
-# load example track
-csv_data_temp = np.loadtxt(
-    "./berlin_2018.csv",
-    comments="#",
-    delimiter=",",
-)
+    referenceTrack = csv_data_temp[:, 0:4]
+    # Prepare Track for Optimization
+    (
+        interpReferenceTrack,
+        normvec_normalized_interp,
+        a_interp,
+        coeffs_x_interp,
+        coeffs_y_interp,
+    ) = prep_track(
+        reftrack_imp=referenceTrack,
+        reg_smooth_opts={"k_reg": 3, "s_reg": 10},
+        stepsize_opts={
+            "stepsize_prep": 1.0,
+            "stepsize_reg": 1.0,
+            "stepsize_interp_after_opt": 1.0,
+        },
+    )
+    # Optimize Path
+    alpha_opt = optimizeMinCurve(
+        referenceTrack=interpReferenceTrack[:, :],
+        normVectors=normvec_normalized_interp,
+        A=a_interp,
+        curvatureBoundaries=0.12,
+        vehicleWidth=1.25,
+    )
+    # create race line
+    (
+        raceline_interp,
+        a_opt,
+        optXCoeff,
+        optYCoeff,
+        spline_inds_opt_interp,
+        t_vals_opt_interp,
+        s_points_opt_interp,
+        spline_lengths_opt,
+        el_lengths_opt_interp,
+    ) = create_raceline(
+        refline=interpReferenceTrack[:, :2],
+        normVectors=normvec_normalized_interp,
+        alpha=alpha_opt,
+        stepsize_interp=1.0,
+    )
 
-referenceTrack = csv_data_temp[:, 0:4]
-# Prepare Track for Optimization
-(
-    interpReferenceTrack,
-    normvec_normalized_interp,
-    a_interp,
-    coeffs_x_interp,
-    coeffs_y_interp,
-) = prep_track(
-    reftrack_imp=referenceTrack,
-    reg_smooth_opts={"k_reg": 3, "s_reg": 10},
-    stepsize_opts={
-        "stepsize_prep": 1.0,
-        "stepsize_reg": 1.0,
-        "stepsize_interp_after_opt": 1.0,
-    },
-)
-# Optimize Path
-alpha_opt = optimizeMinCurve(
-    referenceTrack=interpReferenceTrack[:, :],
-    normVectors=normvec_normalized_interp,
-    A=a_interp,
-    curvatureBoundaries=0.12,
-    vehicleWidth=1.25,
-)
-# create race line
-(
-    raceline_interp,
-    a_opt,
-    optXCoeff,
-    optYCoeff,
-    spline_inds_opt_interp,
-    t_vals_opt_interp,
-    s_points_opt_interp,
-    spline_lengths_opt,
-    el_lengths_opt_interp,
-) = create_raceline(
-    refline=interpReferenceTrack[:, :2],
-    normVectors=normvec_normalized_interp,
-    alpha=alpha_opt,
-    stepsize_interp=1.0,
-)
+    # plot generated race line
 
-# plot generated race line
+    # calculate optimized race line normal vectors
+    normVec = np.stack((optYCoeff[:, 1], -optXCoeff[:, 1]), axis=1)
+    normFactors = 1.0 / np.sqrt(np.sum(np.power(normVec, 2), axis=1))
+    optNormVec = np.expand_dims(normFactors, axis=1) * normVec
 
-# calculate optimized race line normal vectors
-normVec = np.stack((optYCoeff[:, 1], -optXCoeff[:, 1]), axis=1)
-normFactors = 1.0 / np.sqrt(np.sum(np.power(normVec, 2), axis=1))
-optNormVec = np.expand_dims(normFactors, axis=1) * normVec
+    bound1 = interpReferenceTrack[:, :2] + optNormVec * np.expand_dims(
+        interpReferenceTrack[:, 2], 1
+    )
+    bound2 = interpReferenceTrack[:, :2] - optNormVec * np.expand_dims(
+        interpReferenceTrack[:, 3], 1
+    )
 
-bound1 = interpReferenceTrack[:, :2] + optNormVec * np.expand_dims(
-    interpReferenceTrack[:, 2], 1
-)
-bound2 = interpReferenceTrack[:, :2] - optNormVec * np.expand_dims(
-    interpReferenceTrack[:, 3], 1
-)
+    point1_arrow = raceline_interp[0]
+    point2_arrow = raceline_interp[3]
+    vec_arrow = point2_arrow - point1_arrow
 
-point1_arrow = raceline_interp[0]
-point2_arrow = raceline_interp[3]
-vec_arrow = point2_arrow - point1_arrow
-
-# plot track including optimized path
-plt.figure()
-plt.plot(raceline_interp[:, 0], raceline_interp[:, 1])
-plt.plot(interpReferenceTrack[:, 0], interpReferenceTrack[:, 1], "b--")
-plt.plot(bound1[:, 0], bound1[:, 1], "k-")
-plt.plot(bound2[:, 0], bound2[:, 1], "k-")
+    # plot track including optimized path
+    plt.figure()
+    plt.plot(raceline_interp[:, 0], raceline_interp[:, 1])
+    plt.plot(interpReferenceTrack[:, 0], interpReferenceTrack[:, 1], "b--")
+    plt.plot(bound1[:, 0], bound1[:, 1], "k-")
+    plt.plot(bound2[:, 0], bound2[:, 1], "k-")
 
 
-plt.grid()
-ax = plt.gca()
-ax.arrow(
-    point1_arrow[0],
-    point1_arrow[1],
-    vec_arrow[0],
-    vec_arrow[1],
-    head_width=7.0,
-    head_length=7.0,
-    fc="g",
-    ec="g",
-)
-ax.set_aspect("equal", "datalim")
-plt.xlabel("east in m")
-plt.ylabel("north in m")
-plt.show()
+    plt.grid()
+    ax = plt.gca()
+    ax.arrow(
+        point1_arrow[0],
+        point1_arrow[1],
+        vec_arrow[0],
+        vec_arrow[1],
+        head_width=7.0,
+        head_length=7.0,
+        fc="g",
+        ec="g",
+    )
+    ax.set_aspect("equal", "datalim")
+    plt.xlabel("east in m")
+    plt.ylabel("north in m")
+    plt.show()
