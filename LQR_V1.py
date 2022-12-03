@@ -909,6 +909,4 @@ if __name__ == "__main__":
         ec="g",
     )
     ax.set_aspect("equal", "datalim")
-    plt.xlabel("east in m")
-    plt.ylabel("north in m")
     plt.show()
