@@ -6,8 +6,8 @@ import math
 from scipy import interpolate, optimize, spatial
 from typing import Union
 import matplotlib.pyplot as plt
-import os
-import sys
+import scipy
+
 
 def calcSplines(
     path: np.ndarray
@@ -109,10 +109,12 @@ def optimizeMinCurve(
 
     for i in range(noSplines):
         A_ex_c[i, i * 4 + 2] = 2  # 2 * c_ix = D_x * x
-
-    # invert matrix A resulting from the spline setup linear equation system and apply extraction matrix
-    A_inv = np.linalg.inv(A)
-    T_c = np.matmul(A_ex_c, A_inv)
+    #ax=b --> (A)*(T_C) = (A_ex_c)
+    TS = time.time()
+    TempTC = scipy.sparse.linalg.spsolve(A.T,A_ex_c.T)
+    T_c = TempTC.T
+    print(time.time()-TS)
+    print(T_c)
     # set up M_x and M_y matrices
     M_x = np.zeros((noSplines * 4, noPoints))
     M_y = np.zeros((noSplines * 4, noPoints))
@@ -806,7 +808,7 @@ if __name__ == "__main__":
         stepsize_opts={
             "stepsize_prep": 1.0,
             "stepsize_reg": 3.0,
-            "stepsize_interp_after_opt": 3.0,
+            "stepsize_interp_after_opt": 10.0,
         },
     )
 
