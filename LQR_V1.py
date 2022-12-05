@@ -552,6 +552,7 @@ def create_raceline(
         s_raceline_interp,
         spline_lengths_raceline,
         el_lengths_raceline_interp_cl,
+        normvectors_raceline
     )
 
 
@@ -821,6 +822,7 @@ if __name__ == "__main__":
         s_points_opt_interp,
         spline_lengths_opt,
         el_lengths_opt_interp,
+        normvectors_raceline
     ) = create_raceline(
         refline=interpReferenceTrack[:, :2],
         normVectors=normvec_normalized_interp,
@@ -830,15 +832,10 @@ if __name__ == "__main__":
 
     # plot generated race line
 
-    # calculate optimized race line normal vectors
-    normVec = np.stack((optYCoeff[:, 1], -optXCoeff[:, 1]), axis=1)
-    normFactors = 1.0 / np.sqrt(np.sum(np.power(normVec, 2), axis=1))
-    optNormVec = np.expand_dims(normFactors, axis=1) * normVec
-
-    bound1 = interpReferenceTrack[:, :2] + optNormVec * np.expand_dims(
+    bound1 = interpReferenceTrack[:, :2] + normvectors_raceline * np.expand_dims(
         interpReferenceTrack[:, 2], 1
     )
-    bound2 = interpReferenceTrack[:, :2] - optNormVec * np.expand_dims(
+    bound2 = interpReferenceTrack[:, :2] - normvectors_raceline * np.expand_dims(
         interpReferenceTrack[:, 3], 1
     )
 
