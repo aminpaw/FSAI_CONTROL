@@ -785,8 +785,8 @@ if __name__ == "__main__":
         comments="#",
         delimiter=",",
     )
-
     referenceTrack = csv_data_temp[:, 0:4]
+    
     # Prepare Track for Optimization
     (
         interpReferenceTrack,
@@ -803,6 +803,7 @@ if __name__ == "__main__":
             "stepsize_interp_after_opt": 1.0,
         },
     )
+
     # Optimize Path
     alpha_opt = optimizeMinCurve(
         referenceTrack=interpReferenceTrack[:, :],
@@ -811,6 +812,7 @@ if __name__ == "__main__":
         curvatureBoundaries=0.12,
         vehicleWidth=1.25,
     )
+
     # create race line
     (
         raceline_interp,
