@@ -805,8 +805,8 @@ if __name__ == "__main__":
         reg_smooth_opts={"k_reg": 3, "s_reg": 10},
         stepsize_opts={
             "stepsize_prep": 1.0,
-            "stepsize_reg": 1.0,
-            "stepsize_interp_after_opt": 1.0,
+            "stepsize_reg": 3.0,
+            "stepsize_interp_after_opt": 3.0,
         },
     )
 
