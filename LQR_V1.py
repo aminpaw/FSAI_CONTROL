@@ -95,7 +95,6 @@ def optimizeMinCurve(
     # ------------------------------------------------------------------------------------------------------------------
     # PREPARATIONS -----------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    TimeS = time.perf_counter()
     noPoints = noSplines = referenceTrack.shape[0]
 
     # create extraction matrix for b_i coefficients used in gradient
@@ -174,7 +173,6 @@ def optimizeMinCurve(
     # ------------------------------------------------------------------------------------------------------------------
     # SET UP FINAL MATRICES FOR SOLVER ---------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    TimeS = time.perf_counter()
     T_nx = np.matmul(T_c, M_x)
     T_ny = np.matmul(T_c, M_y)
 
@@ -194,7 +192,6 @@ def optimizeMinCurve(
     # ------------------------------------------------------------------------------------------------------------------
     # CURVATURE(KAPPA) CONSTRAINTS ------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    TimeS = time.perf_counter()
     Q_x = np.matmul(curv_part, y_prime)
     Q_y = np.matmul(curv_part, x_prime)
 
@@ -322,7 +319,7 @@ def spline_approximation(
 
     # find B spline representation of the inserted path and smooth it in this process
     # (tck_cl: tuple (vector of knots, the B-spline coefficients, and the degree of the spline))
-    tck_cl, t_glob_cl = interpolate.splprep(
+    tck_cl, _ = interpolate.splprep(
         [track_interp_cl[:, 0], track_interp_cl[:, 1]], k=k_reg, s=s_reg, per=1
     )[:2]
 
@@ -569,8 +566,6 @@ def interp_splines(
     stepnum_fixed: list = None,
 ) -> tuple:
     """
-    author:
-    Alexander Heilmeier & Tim Stahl
     .. description::
     Interpolate points on one or more splines with third order. The last point (i.e. t = 1.0)
     can be included if option is set accordingly (should be prevented for a closed raceline in most cases). The
@@ -601,34 +596,6 @@ def interp_splines(
     len(coeffs_x) = len(coeffs_y) = len(spline_lengths)
     len(path_interp = len(spline_inds) = len(t_values) = len(dists_interp)
     """
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # INPUT CHECKS -----------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------
-
-    # check sizes
-    if coeffs_x.shape[0] != coeffs_y.shape[0]:
-        raise RuntimeError("Coefficient matrices must have the same length!")
-
-    if spline_lengths is not None and coeffs_x.shape[0] != spline_lengths.size:
-        raise RuntimeError("coeffs_x/y and spline_lengths must have the same length!")
-
-    # check if coeffs_x and coeffs_y have exactly two dimensions and raise error otherwise
-    if not (coeffs_x.ndim == 2 and coeffs_y.ndim == 2):
-        raise RuntimeError("Coefficient matrices do not have two dimensions!")
-
-    # check if step size specification is valid
-    if (stepsize_approx is None and stepnum_fixed is None) or (
-        stepsize_approx is not None and stepnum_fixed is not None
-    ):
-        raise RuntimeError(
-            "Provide one of 'stepsize_approx' and 'stepnum_fixed' and set the other to 'None'!"
-        )
-
-    if stepnum_fixed is not None and len(stepnum_fixed) != coeffs_x.shape[0]:
-        raise RuntimeError(
-            "The provided list 'stepnum_fixed' must hold an entry for every spline!"
-        )
 
     # ------------------------------------------------------------------------------------------------------------------
     # CALCULATE NUMBER OF INTERPOLATION POINTS AND ACCORDING DISTANCES -------------------------------------------------
@@ -768,26 +735,19 @@ def interp_splines(
 
 
 def calc_spline_lengths(
-    coeffs_x: np.ndarray, coeffs_y: np.ndarray, no_interp_points: int = 15
+    coeffs_x: np.ndarray, coeffs_y: np.ndarray
 ) -> np.ndarray:
     """
-    author:
-    Alexander Heilmeier
     .. description::
     Calculate spline lengths for third order splines defining x- and y-coordinates by usage of intermediate steps.
     .. inputs::
-    :param coeffs_x:            coefficient matrix of the x splines with size (no_splines x 4).
+    :param coeffs_x:            coefficient matrix of the x splines with size (no_splines * 4).
     :type coeffs_x:             np.ndarray
-    :param coeffs_y:            coefficient matrix of the y splines with size (no_splines x 4).
+    :param coeffs_y:            coefficient matrix of the y splines with size (no_splines * 4).
     :type coeffs_y:             np.ndarray
-    :param quickndirty:         True returns lengths based on distance between first and last spline point instead of
-                                using interpolation.
-    :type no_interp_points:     int
     .. outputs::
     :return spline_lengths:     length of every spline segment.
     :rtype spline_lengths:      np.ndarray
-    .. notes::
-    len(coeffs_x) = len(coeffs_y) = len(spline_lengths)
     """
 
     # ------------------------------------------------------------------------------------------------------------------
