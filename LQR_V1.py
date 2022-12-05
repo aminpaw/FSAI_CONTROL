@@ -469,8 +469,6 @@ def create_raceline(
     stepsize_interp: float,
 ) -> tuple:
     """
-    author:
-    Alexander Heilmeier
     .. description::
     This function includes the algorithm part connected to the interpolation of the raceline after the optimization.
     .. inputs::
