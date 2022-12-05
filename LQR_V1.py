@@ -786,7 +786,13 @@ if __name__ == "__main__":
         delimiter=",",
     )
     referenceTrack = csv_data_temp[:, 0:4]
-    
+
+    #PARAMETERS
+    vehicleWidth = 1.25
+    safetyClearence = 1
+    safeVehicleWidth = vehicleWidth + safetyClearence
+    maxCurvature = 0.12
+
     # Prepare Track for Optimization
     (
         interpReferenceTrack,
@@ -809,8 +815,8 @@ if __name__ == "__main__":
         referenceTrack=interpReferenceTrack[:, :],
         normVectors=normvec_normalized_interp,
         A=a_interp,
-        curvatureBoundaries=0.12,
-        vehicleWidth=1.25,
+        curvatureBoundaries=maxCurvature,
+        vehicleWidth=safeVehicleWidth
     )
 
     # create race line
@@ -831,8 +837,9 @@ if __name__ == "__main__":
         alpha=alpha_opt,
         stepsize_interp=1.0,
     )
-
-    # plot generated race line
+    ###########################
+    # PLOT OPTIMIZED RACELINE #
+    ###########################
 
     bound1 = interpReferenceTrack[:, :2] + normvectors_raceline * np.expand_dims(
         interpReferenceTrack[:, 2], 1
@@ -841,29 +848,13 @@ if __name__ == "__main__":
         interpReferenceTrack[:, 3], 1
     )
 
-    point1_arrow = raceline_interp[0]
-    point2_arrow = raceline_interp[3]
-    vec_arrow = point2_arrow - point1_arrow
-
     # plot track including optimized path
     plt.figure()
     plt.plot(raceline_interp[:, 0], raceline_interp[:, 1])
     plt.plot(interpReferenceTrack[:, 0], interpReferenceTrack[:, 1], "b--")
     plt.plot(bound1[:, 0], bound1[:, 1], "k-")
     plt.plot(bound2[:, 0], bound2[:, 1], "k-")
-
-
     plt.grid()
     ax = plt.gca()
-    ax.arrow(
-        point1_arrow[0],
-        point1_arrow[1],
-        vec_arrow[0],
-        vec_arrow[1],
-        head_width=7.0,
-        head_length=7.0,
-        fc="g",
-        ec="g",
-    )
     ax.set_aspect("equal", "datalim")
     plt.show()
