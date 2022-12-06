@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 import scipy
 
 
-def calcSplines(
-    path: np.ndarray
-) -> tuple:
+def calcSplines(path: np.ndarray) -> tuple:
 
     # get number of splines
     noSplines = path.shape[0] - 1
@@ -29,14 +27,14 @@ def calcSplines(
     # row 2: end of current spline should be placed on next point (t = 1)
     # row 3: heading at end of current spline should be equal to heading at beginning of next spline (t = 1 and t = 0)
     # row 4: curvature at end of current spline should be equal to curvature at beginning of next spline (t = 1 and t = 0)
-    templateM = np.array(  
-        [                               # current point               | next point 
-            [1, 0, 0, 0, 0, 0, 0, 0],   # a_0i
-            [1, 1, 1, 1, 0, 0, 0, 0],   # a_0i + a_1i +  a_2i +  a_3i
-            [0, 1, 2, 3, 0, -1, 0, 0],  # _      a_1i + 2a_2i + 3a_3i      - a_1i+1
-            [0, 0, 2, 6, 0, 0, -2, 0],  # _             2a_2i + 6a_3i               - 2a_2i+1
+    templateM = np.array(
+        [  # current point               | next point
+            [1, 0, 0, 0, 0, 0, 0, 0],  # a_0i
+            [1, 1, 1, 1, 0, 0, 0, 0],  # a_0i + a_1i +  a_2i +  a_3i
+            [0, 1, 2, 3, 0,-1, 0, 0],  # _      a_1i + 2a_2i + 3a_3i      - a_1i+1
+            [0, 0, 2, 6, 0, 0,-2, 0],  # _             2a_2i + 6a_3i               - 2a_2i+1
         ]
-    )  
+    )
 
     for i in range(noSplines):
         j = i * 4
@@ -64,7 +62,7 @@ def calcSplines(
     # curvature boundary condition
     M[-1, 2] = 2 * math.pow(scaling[-1], 2)
     M[-1, -2:] = [-2, -6]
-    
+
     # get coefficients of spline
     tSpline = np.arange(0, path.shape[0])
     xPoints = np.array(path[:, 0])
@@ -83,6 +81,7 @@ def calcSplines(
     normFactors = 1.0 / np.sqrt(np.sum(np.power(normVec, 2), axis=1))
     normVecNormalized = np.expand_dims(normFactors, axis=1) * normVec
     return xCoeffs, yCoeffs, M, normVecNormalized
+
 
 def optimizeMinCurve(
     referenceTrack: np.ndarray,
@@ -109,11 +108,11 @@ def optimizeMinCurve(
     for i in range(noSplines):
         A_ex_c[i, i * 4 + 2] = 2  # 2 * c_ix = D_x * x
 
-    #ax=b --> (A)*(T_C) = (A_ex_c)
+    # ax=b --> (A)*(T_C) = (A_ex_c)
     TS = time.time()
-    TempTC = scipy.sparse.linalg.spsolve(A.T,A_ex_c.T)
+    TempTC = scipy.sparse.linalg.spsolve(A.T, A_ex_c.T)
     T_c = TempTC.T
-    print("Linear Solve Time:",time.time()-TS)
+    print("Linear Solve Time:", time.time() - TS)
 
     # set up M_x and M_y matrices
     M_x = np.zeros((noSplines * 4, noPoints))
@@ -156,7 +155,7 @@ def optimizeMinCurve(
             q_y[j + 1, 0] = referenceTrack[0, 1]
 
     # set up P_xx, P_xy, P_yy matrices
-    TempTB = scipy.sparse.linalg.spsolve(A.T,A_ex_b.T)
+    TempTB = scipy.sparse.linalg.spsolve(A.T, A_ex_b.T)
     T_b = TempTB.T
     x_prime = np.eye(noPoints, noPoints) * np.matmul(T_b, q_x)
     y_prime = np.eye(noPoints, noPoints) * np.matmul(T_b, q_y)
@@ -238,13 +237,10 @@ def optimizeMinCurve(
     # solve problem -----------------------------------------------------------------------------------------
     alphaMinCurve = quadprog.solve_qp(H, -f, -G.T, -h, 0)[0]
 
-    print(
-        "Solver runtime: "
-        + "{:.3f}".format(time.perf_counter() - t_start)
-        + "s"
-    )
+    print("Solver runtime: " + "{:.3f}".format(time.perf_counter() - t_start) + "s")
 
     return alphaMinCurve
+
 
 def prep_track(
     reftrack_imp: np.ndarray,
@@ -267,7 +263,9 @@ def prep_track(
     )
 
     # calculate splines
-    refpath_interp_cl = np.vstack((interpReferenceTrack[:, :2], interpReferenceTrack[0, :2]))
+    refpath_interp_cl = np.vstack(
+        (interpReferenceTrack[:, :2], interpReferenceTrack[0, :2])
+    )
     coeffs_x_interp, coeffs_y_interp, a_interp, normvec_normalized_interp = calcSplines(
         path=refpath_interp_cl
     )
@@ -554,7 +552,7 @@ def create_raceline(
         s_raceline_interp,
         spline_lengths_raceline,
         el_lengths_raceline_interp_cl,
-        normvectors_raceline
+        normvectors_raceline,
     )
 
 
@@ -605,10 +603,8 @@ def interp_splines(
     if stepsize_approx is not None:
         # get the total distance up to the end of every spline (i.e. cumulated distances)
         if spline_lengths is None:
-            spline_lengths = (
-                calc_spline_lengths(
-                    coeffs_x=coeffs_x, coeffs_y=coeffs_y, quickndirty=False
-                )
+            spline_lengths = calc_spline_lengths(
+                coeffs_x=coeffs_x, coeffs_y=coeffs_y, quickndirty=False
             )
 
         dists_cum = np.cumsum(spline_lengths)
@@ -735,9 +731,7 @@ def interp_splines(
     return path_interp, spline_inds, t_values, dists_interp
 
 
-def calc_spline_lengths(
-    coeffs_x: np.ndarray, coeffs_y: np.ndarray
-) -> np.ndarray:
+def calc_spline_lengths(coeffs_x: np.ndarray, coeffs_y: np.ndarray) -> np.ndarray:
     """
     .. description::
     Calculate spline lengths for third order splines defining x- and y-coordinates by usage of intermediate steps.
@@ -780,6 +774,7 @@ def calc_spline_lengths(
 
     return spline_lengths
 
+
 if __name__ == "__main__":
     # load example track
     csv_data_temp = np.loadtxt(
@@ -789,7 +784,7 @@ if __name__ == "__main__":
     )
     referenceTrack = csv_data_temp[:, 0:4]
 
-    #PARAMETERS
+    # PARAMETERS
     vehicleWidth = 1.25
     safetyClearence = 2
     safeVehicleWidth = vehicleWidth + safetyClearence
@@ -812,7 +807,7 @@ if __name__ == "__main__":
             "stepsize_interp_after_opt": 5.0,
         },
     )
-    print("Prep Track Time:", time.time()-timeStart)
+    print("Prep Track Time:", time.time() - timeStart)
     timeStartOpt = time.time()
     # Optimize Path
     alpha_opt = optimizeMinCurve(
@@ -820,7 +815,7 @@ if __name__ == "__main__":
         normVectors=normvec_normalized_interp,
         A=a_interp,
         curvatureBoundaries=maxCurvature,
-        vehicleWidth=safeVehicleWidth
+        vehicleWidth=safeVehicleWidth,
     )
     print("Opt Time:", time.time() - timeStartOpt)
 
@@ -836,7 +831,7 @@ if __name__ == "__main__":
         s_points_opt_interp,
         spline_lengths_opt,
         el_lengths_opt_interp,
-        normvectors_raceline
+        normvectors_raceline,
     ) = create_raceline(
         refline=interpReferenceTrack[:, :2],
         normVectors=normvec_normalized_interp,
@@ -844,7 +839,7 @@ if __name__ == "__main__":
         stepsize_interp=1.0,
     )
     print("Race Line Generation Time:", time.time() - timeStartRaceLine)
-    print("Total Time:",time.time()-timeStart)
+    print("Total Time:", time.time() - timeStart)
     ###########################
     # PLOT OPTIMIZED RACELINE #
     ###########################
@@ -866,3 +861,4 @@ if __name__ == "__main__":
     ax = plt.gca()
     ax.set_aspect("equal", "datalim")
     plt.show()
+    "hehehe"
