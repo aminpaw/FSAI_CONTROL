@@ -109,6 +109,7 @@ def optimizeMinCurve(
 
     for i in range(noSplines):
         A_ex_c[i, i * 4 + 2] = 2  # 2 * c_ix = D_x * x
+
     #ax=b --> (A)*(T_C) = (A_ex_c)
     TS = time.time()
     TempTC = scipy.sparse.linalg.spsolve(A.T,A_ex_c.T)
@@ -156,8 +157,10 @@ def optimizeMinCurve(
             q_y[j + 1, 0] = referenceTrack[0, 1]
 
     # set up P_xx, P_xy, P_yy matrices
-    x_prime = np.eye(noPoints, noPoints) * np.matmul(np.matmul(A_ex_b, A_inv), q_x)
-    y_prime = np.eye(noPoints, noPoints) * np.matmul(np.matmul(A_ex_b, A_inv), q_y)
+    TempTB = scipy.sparse.linalg.spsolve(A.T,A_ex_b.T)
+    T_b = TempTB.T
+    x_prime = np.eye(noPoints, noPoints) * np.matmul(T_b, q_x)
+    y_prime = np.eye(noPoints, noPoints) * np.matmul(T_b, q_y)
 
     x_prime_sq = np.power(x_prime, 2)
     y_prime_sq = np.power(y_prime, 2)
