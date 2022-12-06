@@ -84,7 +84,6 @@ def calcSplines(
     normVecNormalized = np.expand_dims(normFactors, axis=1) * normVec
     return xCoeffs, yCoeffs, M, normVecNormalized
 
-
 def optimizeMinCurve(
     referenceTrack: np.ndarray,
     normVectors: np.ndarray,
@@ -114,8 +113,8 @@ def optimizeMinCurve(
     TS = time.time()
     TempTC = scipy.sparse.linalg.spsolve(A.T,A_ex_c.T)
     T_c = TempTC.T
-    print(time.time()-TS)
-    print(T_c)
+    print("Linear Solve Time:",time.time()-TS)
+
     # set up M_x and M_y matrices
     M_x = np.zeros((noSplines * 4, noPoints))
     M_y = np.zeros((noSplines * 4, noPoints))
@@ -247,7 +246,6 @@ def optimizeMinCurve(
 
     return alphaMinCurve
 
-
 def prep_track(
     reftrack_imp: np.ndarray,
     reg_smooth_opts={"k_reg": 3, "s_reg": 10},
@@ -256,7 +254,6 @@ def prep_track(
         "stepsize_reg": 3.0,
         "stepsize_interp_after_opt": 2.0,
     },
-    debug: bool = True,
     min_width: float = 3,
 ) -> tuple:
 
@@ -794,10 +791,11 @@ if __name__ == "__main__":
 
     #PARAMETERS
     vehicleWidth = 1.25
-    safetyClearence = 1
+    safetyClearence = 2
     safeVehicleWidth = vehicleWidth + safetyClearence
     maxCurvature = 0.12
 
+    timeStart = time.time()
     # Prepare Track for Optimization
     (
         interpReferenceTrack,
@@ -807,14 +805,15 @@ if __name__ == "__main__":
         coeffs_y_interp,
     ) = prep_track(
         reftrack_imp=referenceTrack,
-        reg_smooth_opts={"k_reg": 3, "s_reg": 10},
+        reg_smooth_opts={"k_reg": 3, "s_reg": 5},
         stepsize_opts={
             "stepsize_prep": 1.0,
             "stepsize_reg": 3.0,
-            "stepsize_interp_after_opt": 10.0,
+            "stepsize_interp_after_opt": 5.0,
         },
     )
-
+    print("Prep Track Time:", time.time()-timeStart)
+    timeStartOpt = time.time()
     # Optimize Path
     alpha_opt = optimizeMinCurve(
         referenceTrack=interpReferenceTrack[:, :],
@@ -823,8 +822,10 @@ if __name__ == "__main__":
         curvatureBoundaries=maxCurvature,
         vehicleWidth=safeVehicleWidth
     )
+    print("Opt Time:", time.time() - timeStartOpt)
 
     # create race line
+    timeStartRaceLine = time.time()
     (
         raceline_interp,
         a_opt,
@@ -842,6 +843,8 @@ if __name__ == "__main__":
         alpha=alpha_opt,
         stepsize_interp=1.0,
     )
+    print("Race Line Generation Time:", time.time() - timeStartRaceLine)
+    print("Total Time:",time.time()-timeStart)
     ###########################
     # PLOT OPTIMIZED RACELINE #
     ###########################
